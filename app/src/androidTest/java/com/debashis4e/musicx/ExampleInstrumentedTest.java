@@ -1,4 +1,4 @@
-package com.drivebird.musicx;
+package com.debashis4e.musicx;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

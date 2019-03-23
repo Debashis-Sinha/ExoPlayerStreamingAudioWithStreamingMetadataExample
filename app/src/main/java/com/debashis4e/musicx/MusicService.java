@@ -1,4 +1,4 @@
-package com.drivebird.musicx;
+package com.debashis4e.musicx;
 
 import android.app.Service;
 import android.content.Intent;
