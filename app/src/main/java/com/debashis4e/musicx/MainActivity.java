@@ -18,14 +18,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ImageButton playStopBtn;
-    private ImageView playStopStateIcon;
+    private ImageView playStopBtn;
     private boolean mBound = false;
     private MusicService musicService;
     private View onlineLayout, offlineLayout;
@@ -51,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
         onlineLayout = findViewById(R.id.onlineLayout);
         offlineLayout = findViewById(R.id.offlineLayout);
         playStopBtn = findViewById(R.id.playStopBtn);
-        playStopStateIcon = findViewById(R.id.playStopStateIcon);
 
         processPhoneListenerPermission();
         BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -63,8 +60,7 @@ public class MainActivity extends AppCompatActivity {
                         case TelephonyManager.CALL_STATE_RINGING:
                             if (musicService.isPlaying()) {
                                 musicService.stop();
-                                playStopBtn.setImageResource(R.drawable.play);
-                                playStopStateIcon.setImageResource(R.drawable.spekeroff);
+                                playStopBtn.setImageResource(R.drawable.ic_play);
                             }
                             break;
                     }
@@ -120,13 +116,11 @@ public class MainActivity extends AppCompatActivity {
     public void playStop(View view) {
         if (musicService.isPlaying()) {
             musicService.stop();
-            playStopBtn.setImageResource(R.drawable.play);
-            playStopStateIcon.setImageResource(R.drawable.spekeroff);
+            playStopBtn.setImageResource(R.drawable.ic_play);
         } else {
             String streamUrl = "http://radio.bongonet.net:8000/stream;";
             musicService.play(streamUrl);
-            playStopBtn.setImageResource(R.drawable.stop);
-            playStopStateIcon.setImageResource(R.drawable.spekeron);
+            playStopBtn.setImageResource(R.drawable.ic_pause);
         }
     }
 

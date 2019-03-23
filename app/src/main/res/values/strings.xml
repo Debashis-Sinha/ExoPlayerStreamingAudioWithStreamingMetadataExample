@@ -1,6 +1,8 @@
 <resources>
-    <string name="app_name">Music X</string>
+    <string name="app_name">Radio station name</string>
+    <string name="app_slogan">Sunday night - now playing</string>
     <string name="play">Play</string>
     <string name="stop">Stop</string>
     <string name="no_internet">No Internet</string>
+    <string name="image_content_description">Content description</string>
 </resources>
