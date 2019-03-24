@@ -11,6 +11,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
@@ -19,14 +20,20 @@ import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import wseemann.media.FFmpegMediaMetadataRetriever;
 
 public class MainActivity extends AppCompatActivity {
 
+    private String nowPlaying;
     private ImageView playStopBtn;
     private boolean mBound = false;
     private MusicService musicService;
+    private TextView radioStationNowPlaying;
     private View onlineLayout, offlineLayout;
+    String streamUrl = "http://radio.bongonet.net:8000";
     private static final int READ_PHONE_STATE_REQUEST_CODE = 22;
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -49,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
         onlineLayout = findViewById(R.id.onlineLayout);
         offlineLayout = findViewById(R.id.offlineLayout);
         playStopBtn = findViewById(R.id.playStopBtn);
+        radioStationNowPlaying = findViewById(R.id.radioStationNowPlaying);
 
         processPhoneListenerPermission();
         BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -80,6 +88,31 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction("android.intent.action.PHONE_STATE");
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         registerReceiver(broadcastReceiver, filter);
+
+        Thread t = new Thread() {
+            public void run() {
+                try {
+                    while (!isInterrupted()) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                reloadShoutCastInfo();
+                            }
+                        });
+                        Thread.sleep(20000);
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        };
+        t.start();
+    }
+
+    private void reloadShoutCastInfo() {
+        if(isNetworkAvailable()) {
+            AsyncTaskRunner runner = new AsyncTaskRunner();
+            runner.execute();
+        }
     }
 
     private void showOfflineLayout() {
@@ -118,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
             musicService.stop();
             playStopBtn.setImageResource(R.drawable.ic_play);
         } else {
-            String streamUrl = "http://radio.bongonet.net:8000/stream;";
             musicService.play(streamUrl);
             playStopBtn.setImageResource(R.drawable.ic_pause);
         }
@@ -138,5 +170,31 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    public boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = null;
+        if (cm != null) {
+            networkInfo = cm.getActiveNetworkInfo();
+        }
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
+    }
+
+    private class AsyncTaskRunner extends AsyncTask<String, String, String> {
+
+        @Override
+        protected String doInBackground(String... params) {
+            FFmpegMediaMetadataRetriever mmr = new FFmpegMediaMetadataRetriever();
+            mmr.setDataSource(streamUrl);
+            nowPlaying = mmr.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_ICY_METADATA).replaceAll("StreamTitle", "").replaceAll("[=,';]+", "");
+            mmr.release();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            radioStationNowPlaying.setText(nowPlaying);
+        }
     }
 }
