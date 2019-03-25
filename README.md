@@ -7,6 +7,7 @@ Simple example of google exoplayer streaming music service using bound service o
   <img src="https://raw.githubusercontent.com/Debashis-Sinha/ExoPlayerStreamingAudioExample/master/Screenshots/sc4.png" width="160"/>
   <img src="https://raw.githubusercontent.com/Debashis-Sinha/ExoPlayerStreamingAudioExample/master/Screenshots/sc5.png" width="160"/>
 </p>
+
 ## Contributing
 
 All contributions are welcome! If you wish to contribute, please create an issue first so that your feature, problem or question can be discussed.
