@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private MusicService musicService;
     private TextView radioStationNowPlaying;
     private View onlineLayout, offlineLayout;
-    String streamUrl = "http://radio.bongonet.net:8000";
+    private String streamUrl = Config.STREAMING_URL;
     private static final int READ_PHONE_STATE_REQUEST_CODE = 22;
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -89,23 +89,25 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         registerReceiver(broadcastReceiver, filter);
 
-        Thread t = new Thread() {
-            public void run() {
-                try {
-                    while (!isInterrupted()) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                reloadShoutCastInfo();
-                            }
-                        });
-                        Thread.sleep(20000);
+        if(Config.IS_LOADING_NOW_PLAYING){
+            Thread t = new Thread() {
+                public void run() {
+                    try {
+                        while (!isInterrupted()) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    reloadShoutCastInfo();
+                                }
+                            });
+                            Thread.sleep(20000);
+                        }
+                    } catch (InterruptedException e) {
                     }
-                } catch (InterruptedException e) {
                 }
-            }
-        };
-        t.start();
+            };
+            t.start();
+        }
     }
 
     private void reloadShoutCastInfo() {
@@ -147,12 +149,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void playStop(View view) {
-        if (musicService.isPlaying()) {
-            musicService.stop();
-            playStopBtn.setImageResource(R.drawable.ic_play);
-        } else {
+        if (!musicService.isPlaying()) {
             musicService.play(streamUrl);
             playStopBtn.setImageResource(R.drawable.ic_pause);
+        } else {
+            musicService.stop();
+            playStopBtn.setImageResource(R.drawable.ic_play);
         }
     }
 
