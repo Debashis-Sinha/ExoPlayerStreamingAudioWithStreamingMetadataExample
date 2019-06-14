@@ -1,10 +1,12 @@
 package com.debashis4e.musicx;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -65,13 +67,11 @@ public class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Service.TELEPHONY_SERVICE);
                 if (tm != null) {
-                    switch (tm.getCallState()) {
-                        case TelephonyManager.CALL_STATE_RINGING:
-                            if (musicService.isPlaying()) {
-                                musicService.stop();
-                                playStopBtn.setImageResource(R.drawable.ic_play);
-                            }
-                            break;
+                    if (tm.getCallState() == TelephonyManager.CALL_STATE_RINGING) {
+                        if (musicService.isPlaying()) {
+                            musicService.stop();
+                            playStopBtn.setImageResource(R.drawable.ic_play);
+                        }
                     }
                 }
 
@@ -90,20 +90,15 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         registerReceiver(broadcastReceiver, filter);
 
-        if(Config.IS_LOADING_NOW_PLAYING){
+        if (Config.IS_LOADING_NOW_PLAYING) {
             Thread t = new Thread() {
                 public void run() {
                     try {
                         while (!isInterrupted()) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    reloadShoutCastInfo();
-                                }
-                            });
+                            runOnUiThread(() -> reloadShoutCastInfo());
                             Thread.sleep(20000);
                         }
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException ignored) {
                     }
                 }
             };
@@ -112,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void reloadShoutCastInfo() {
-        if(isNetworkAvailable()) {
+        if (isNetworkAvailable()) {
             AsyncTaskRunner runner = new AsyncTaskRunner();
             runner.execute();
         }
@@ -182,6 +177,20 @@ public class MainActivity extends AppCompatActivity {
             networkInfo = cm.getActiveNetworkInfo();
         }
         return networkInfo != null && networkInfo.isConnectedOrConnecting();
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Are you sure you want to exit?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, id) -> {
+                    musicService.stop();
+                    finish();
+                })
+                .setNegativeButton("No", (dialog, id) -> dialog.cancel());
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     private class AsyncTaskRunner extends AsyncTask<String, String, String> {
