@@ -4,19 +4,16 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.ImageView;
@@ -26,40 +23,37 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
+import com.google.android.exoplayer2.extractor.ExtractorsFactory;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+
 import wseemann.media.FFmpegMediaMetadataRetriever;
 
 public class MainActivity extends AppCompatActivity {
 
     private String nowPlaying;
     private ImageView playStopBtn;
-    private boolean mBound = false;
-    private MusicService musicService;
+    private SimpleExoPlayer player;
+    private boolean isPlaying = false;
     private TextView radioStationNowPlaying;
-    private View onlineLayout, offlineLayout;
     private String streamUrl = Config.STREAMING_URL;
     private static final int READ_PHONE_STATE_REQUEST_CODE = 22;
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder iBinder) {
-            MusicService.MusicBinder mServiceBinder = (MusicService.MusicBinder) iBinder;
-            musicService = mServiceBinder.getService();
-            mBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            System.exit(0);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        onlineLayout = findViewById(R.id.onlineLayout);
-        offlineLayout = findViewById(R.id.offlineLayout);
         playStopBtn = findViewById(R.id.playStopBtn);
         radioStationNowPlaying = findViewById(R.id.radioStationNowPlaying);
+        initExoPlayer();
 
         processPhoneListenerPermission();
         BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -68,26 +62,16 @@ public class MainActivity extends AppCompatActivity {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Service.TELEPHONY_SERVICE);
                 if (tm != null) {
                     if (tm.getCallState() == TelephonyManager.CALL_STATE_RINGING) {
-                        if (musicService.isPlaying()) {
-                            musicService.stop();
+                        if (isPlaying) {
+                            stop();
                             playStopBtn.setImageResource(R.drawable.ic_play);
                         }
-                    }
-                }
-
-                if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-                    NetworkInfo networkInfo = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-                    if (networkInfo != null && networkInfo.getDetailedState() == NetworkInfo.DetailedState.CONNECTED) {
-                        showOnlineLayout();
-                    } else if (networkInfo != null && networkInfo.getDetailedState() == NetworkInfo.DetailedState.DISCONNECTED) {
-                        showOfflineLayout();
                     }
                 }
             }
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.intent.action.PHONE_STATE");
-        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         registerReceiver(broadcastReceiver, filter);
 
         if (Config.IS_LOADING_NOW_PLAYING) {
@@ -106,6 +90,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void initExoPlayer() {
+        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+        AdaptiveTrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
+        DefaultTrackSelector trackSelector = new DefaultTrackSelector(trackSelectionFactory);
+        player = ExoPlayerFactory.newSimpleInstance(getApplicationContext(), trackSelector);
+    }
+
+    public void play(String channelUrl) {
+        if (isNetworkAvailable()) {
+            DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(getApplicationContext(), "ExoPlayerDemo");
+            ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
+            MediaSource mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory).setExtractorsFactory(extractorsFactory).createMediaSource(Uri.parse(channelUrl));
+            player.prepare(mediaSource);
+            player.setPlayWhenReady(true);
+            isPlaying = true;
+            playStopBtn.setImageResource(R.drawable.ic_pause);
+        } else {
+            Toast.makeText(this, "No internet", Toast.LENGTH_SHORT).show();
+            playStopBtn.setImageResource(R.drawable.ic_play);
+        }
+    }
+
+    public void stop() {
+        player.setPlayWhenReady(false);
+        player.stop();
+        isPlaying = false;
+        playStopBtn.setImageResource(R.drawable.ic_play);
+    }
+
     private void reloadShoutCastInfo() {
         if (isNetworkAvailable()) {
             AsyncTaskRunner runner = new AsyncTaskRunner();
@@ -113,30 +126,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showOfflineLayout() {
-        onlineLayout.setVisibility(View.GONE);
-        offlineLayout.setVisibility(View.VISIBLE);
-    }
-
-    private void showOnlineLayout() {
-        offlineLayout.setVisibility(View.GONE);
-        onlineLayout.setVisibility(View.VISIBLE);
-    }
-
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = new Intent(MainActivity.this, MusicService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mBound) {
-            unbindService(serviceConnection);
-            mBound = false;
-        }
+        isPlaying = false;
     }
 
     @Override
@@ -145,12 +143,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void playStop(View view) {
-        if (!musicService.isPlaying()) {
-            musicService.play(streamUrl);
-            playStopBtn.setImageResource(R.drawable.ic_pause);
+        if (!isPlaying) {
+            play(streamUrl);
         } else {
-            musicService.stop();
-            playStopBtn.setImageResource(R.drawable.ic_play);
+            stop();
         }
     }
 
@@ -185,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setMessage("Are you sure you want to exit?")
                 .setCancelable(false)
                 .setPositiveButton("Yes", (dialog, id) -> {
-                    musicService.stop();
+                    stop();
                     finish();
                 })
                 .setNegativeButton("No", (dialog, id) -> dialog.cancel());

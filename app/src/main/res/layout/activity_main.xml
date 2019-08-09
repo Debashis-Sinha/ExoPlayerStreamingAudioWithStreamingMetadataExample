@@ -25,7 +25,6 @@
         android:background="#CC000000" />
 
     <RelativeLayout
-        android:id="@+id/onlineLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center">
@@ -71,30 +70,4 @@
             android:onClick="playStop"
             android:src="@drawable/ic_play" />
     </RelativeLayout>
-
-    <LinearLayout
-        android:id="@+id/offlineLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <ImageView
-            android:id="@+id/noInternetText"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:contentDescription="@string/image_content_description"
-            android:src="@drawable/turnedoff" />
-
-        <TextView
-            android:id="@+id/noInternet"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/no_internet"
-            android:textColor="@android:color/white"
-            android:textSize="14sp" />
-    </LinearLayout>
-
 </RelativeLayout>

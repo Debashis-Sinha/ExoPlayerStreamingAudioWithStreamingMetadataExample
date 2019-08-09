@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -26,15 +25,12 @@ public class MusicService extends Service {
 
     @Override
     public void onCreate() {
-        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        AdaptiveTrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
-        DefaultTrackSelector trackSelector = new DefaultTrackSelector(trackSelectionFactory);
-        player = ExoPlayerFactory.newSimpleInstance(getApplicationContext(), trackSelector);
+
         super.onCreate();
     }
 
-    public class MusicBinder extends Binder{
-        public MusicService getService(){
+    class MusicBinder extends Binder{
+        MusicService getService(){
             return MusicService.this;
         }
     }
@@ -62,8 +58,7 @@ public class MusicService extends Service {
     public void play(String channelUrl) {
         DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(getApplicationContext(), "ExoPlayerDemo");
         ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
-        Handler mainHandler = new Handler();
-        MediaSource mediaSource = new ExtractorMediaSource(Uri.parse(channelUrl), dataSourceFactory, extractorsFactory, mainHandler, null);
+        MediaSource mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory).setExtractorsFactory(extractorsFactory).createMediaSource(Uri.parse(channelUrl));
         player.prepare(mediaSource);
         player.setPlayWhenReady(true);
     }
