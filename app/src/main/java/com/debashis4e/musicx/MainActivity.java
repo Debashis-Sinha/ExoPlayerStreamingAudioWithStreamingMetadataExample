@@ -1,6 +1,7 @@
 package com.debashis4e.musicx;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -37,11 +39,12 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
 import wseemann.media.FFmpegMediaMetadataRetriever;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AudioManager.OnAudioFocusChangeListener{
 
     private String nowPlaying;
     private ImageView playStopBtn;
     private SimpleExoPlayer player;
+    private AudioManager audioManager;
     private boolean isPlaying = false;
     private TextView radioStationNowPlaying;
     private String streamUrl = Config.STREAMING_URL;
@@ -51,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         playStopBtn = findViewById(R.id.playStopBtn);
         radioStationNowPlaying = findViewById(R.id.radioStationNowPlaying);
         initExoPlayer();
@@ -98,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void play(String channelUrl) {
-        if (isNetworkAvailable()) {
+        if (isNetworkAvailable() && requestFocus()) {
             DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(getApplicationContext(), "ExoPlayerDemo");
             ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
             MediaSource mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory).setExtractorsFactory(extractorsFactory).createMediaSource(Uri.parse(channelUrl));
@@ -189,6 +193,19 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
+    private boolean requestFocus() {
+        return (audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+    }
+
+    @Override
+    public void onAudioFocusChange(int focusChange) {
+        if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            stop();
+            finish();
+        }
+    }
+
+    @SuppressLint("StaticFieldLeak")
     private class AsyncTaskRunner extends AsyncTask<String, String, String> {
 
         @Override
