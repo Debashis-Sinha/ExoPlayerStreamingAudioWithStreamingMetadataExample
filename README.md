@@ -1,5 +1,5 @@
 # ExoPlayerStreamingAudioExample
-Simple example of google exoplayer streaming music service using bound service of android. Its just for beginner's example.
+Simple example of google exoplayer streaming music service for android. Its just for beginner's example.
 <p align="left">
   <img src="https://raw.githubusercontent.com/Debashis-Sinha/ExoPlayerStreamingAudioExample/master/Screenshots/sc1.png" width="160"/>
   <img src="https://raw.githubusercontent.com/Debashis-Sinha/ExoPlayerStreamingAudioExample/master/Screenshots/sc2.png" width="160"/>
